@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"os"
 
+	_ "github.com/lib/pq"
+
 	"github.com/awesome-my/backend"
 	"github.com/awesome-my/backend/database"
 	"github.com/urfave/cli/v2"

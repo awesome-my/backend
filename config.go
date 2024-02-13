@@ -3,6 +3,7 @@ package awesomemy
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/goccy/go-yaml"
 	"golang.org/x/oauth2"
@@ -10,9 +11,11 @@ import (
 )
 
 type Config struct {
-	Postgres       PostgresConfig       `yaml:"postgres"`
-	Redis          RedisConfig          `yaml:"redis"`
-	Authentication AuthenticationConfig `yaml:"authentication"`
+	Postgres        PostgresConfig       `yaml:"postgres"`
+	Redis           RedisConfig          `yaml:"redis"`
+	Http            HttpConfig           `yaml:"http"`
+	Authentication  AuthenticationConfig `yaml:"authentication"`
+	FrontendBaseURL string               `yaml:"frontend_base_url"`
 }
 
 type PostgresConfig struct {
@@ -29,14 +32,34 @@ func (pc PostgresConfig) DSN() string {
 
 type RedisConfig struct {
 	Host string `yaml:"host"`
-	Port int `yaml:"port"`
+	Port int    `yaml:"port"`
 }
 
 func (rc RedisConfig) ConnnectionString() string {
-	return fmt.Sprintf("%s:%d", rc.Host, rc.Port)
+	return rc.Host + ":" + strconv.Itoa(rc.Port)
+}
+
+type HttpConfig struct {
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
+	Cors struct {
+		Origin []string `yaml:"origin"`
+	} `yaml:"cors"`
+}
+
+func (hc HttpConfig) Address() string {
+	return hc.Host + ":" + strconv.Itoa(hc.Port)
 }
 
 type AuthenticationConfig struct {
+	Session struct {
+		Prefix   string   `yaml:"prefix"`
+		Name     string   `yaml:"name"`
+		Persist  bool     `yaml:"persist"`
+		SameSite string   `yaml:"same_site"`
+		Secure   bool     `yaml:"secure"`
+		Lifetime Duration `yaml:"lifetime"`
+	} `yaml:"session"`
 	OAuth2 AuthenticationOAuth2Config `yaml:"oauth2"`
 }
 

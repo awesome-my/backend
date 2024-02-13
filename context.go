@@ -10,10 +10,13 @@ type ctxKey struct {
 }
 
 var (
-	CtxKeyLogger = ctxKey{"awesomemy.logger"}
-	CtxKeyConfig = ctxKey{"awesomemy.config"}
+	CtxKeyLogger   = ctxKey{"awesomemy.logger"}
+	CtxKeyConfig   = ctxKey{"awesomemy.config"}
+	CtxKeyAuthUser = ctxKey{"awesomemy.auth.user"}
 )
 
+// MustContextValue retrieves a context value of type T with the given key.
+// If the assertion fails, it panics.
 func MustContextValue[T any](ctx context.Context, key ctxKey) T {
 	v, ok := ctx.Value(key).(T)
 	if !ok {
