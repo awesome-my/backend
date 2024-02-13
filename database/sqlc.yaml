@@ -1,0 +1,32 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "queries"
+    schema: "migrations"
+    gen:
+      go:
+        package: "database"
+        out: "."
+        emit_methods_with_db_argument: true
+        output_db_file_name: query.go
+        overrides:
+          - db_type: pg_catalog.varchar
+            go_type: github.com/gobuffalo/nulls.String
+            nullable: true
+          - db_type: text
+            go_type: github.com/gobuffalo/nulls.String
+            nullable: true
+          - db_type: pg_catalog.bool
+            go_type: github.com/gobuffalo/nulls.Bool
+            nullable: true
+          - db_type: pg_catalog.serial4
+            go_type: github.com/gobuffalo/nulls.Int32
+            nullable: true
+          - db_type: pg_catalog.int4
+            go_type: github.com/gobuffalo/nulls.Int32
+            nullable: true
+          - db_type: uuid
+            go_type: github.com/gofrs/uuid.UUID
+          - db_type: pg_catalog.timestamp
+            go_type: github.com/gobuffalo/nulls.Time
+            nullable: true
