@@ -8,6 +8,7 @@ package database
 import (
 	"context"
 
+	"github.com/gofrs/uuid"
 	"github.com/lib/pq"
 )
 
@@ -40,6 +41,24 @@ func (q *Queries) InsertProject(ctx context.Context, db DBTX, arg InsertProjectP
 		pq.Array(arg.Tags),
 		arg.UserID,
 	)
+	var i Project
+	err := row.Scan(
+		&i.ProjectID,
+		&i.Uuid,
+		&i.Name,
+		&i.Description,
+		pq.Array(&i.Tags),
+		&i.UserID,
+	)
+	return i, err
+}
+
+const projectByUUID = `-- name: ProjectByUUID :one
+SELECT project_id, uuid, name, description, tags, user_id FROM projects WHERE uuid = $1 LIMIT 1
+`
+
+func (q *Queries) ProjectByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID) (Project, error) {
+	row := db.QueryRowContext(ctx, projectByUUID, argUuid)
 	var i Project
 	err := row.Scan(
 		&i.ProjectID,

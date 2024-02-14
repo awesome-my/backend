@@ -28,6 +28,7 @@ func NewPublic(logger *slog.Logger, cfg awesomemy.Config, db *sql.DB) http.Handl
 	r := chi.NewRouter()
 	r.Route("/projects", func(r chi.Router) {
 		r.Get("/", p.Projects)
+		r.Get("/{project}", p.Project)
 	})
 
 	return r

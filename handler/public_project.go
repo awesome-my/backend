@@ -1,12 +1,15 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/awesome-my/backend"
 	"github.com/awesome-my/backend/database"
+	"github.com/go-chi/chi/v5"
 	"github.com/gofrs/uuid"
 )
 
@@ -60,5 +63,38 @@ func (p *Public) Projects(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{
 		"items":      apiProjects,
 		"pagination": awesomemy.NewPaginationMeta(page, len(projects), int(total)),
+	})
+}
+
+func (p *Public) Project(w http.ResponseWriter, r *http.Request) {
+	projectUuid, err := uuid.FromString(chi.URLParam(r, "project"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "The resource you are looking for could not be found.",
+		})
+		return
+	}
+
+	project, err := p.queries.ProjectByUUID(r.Context(), p.database, projectUuid)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]string{
+				"message": "The resource you are looking for could not be found.",
+			})
+			return
+		}
+
+		p.logger.Error("could not fetch project by uuid", slog.Any("err", err))
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Could not fetch project.",
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{
+		"item": ProjectFromDatabase(project),
 	})
 }
