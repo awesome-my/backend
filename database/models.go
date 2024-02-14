@@ -8,6 +8,15 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+type Project struct {
+	ProjectID   int32
+	Uuid        uuid.UUID
+	Name        string
+	Description string
+	Tags        []string
+	UserID      int32
+}
+
 type User struct {
 	UserID      int32
 	Uuid        uuid.UUID

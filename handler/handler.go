@@ -43,6 +43,7 @@ func New(logger *slog.Logger, cfg awesomemy.Config, db *sql.DB) http.Handler {
 
 	r := chi.NewRouter()
 	r.Use(sm.LoadAndSave, corsMiddleware(cfg))
+	r.Mount("/public", NewPublic(logger, cfg, db))
 	r.Mount("/auth", NewAuth(logger, cfg, db, sm))
 	r.Mount("/client", NewClient(logger, cfg, db, sm))
 

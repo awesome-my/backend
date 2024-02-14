@@ -12,6 +12,7 @@ import (
 	"github.com/awesome-my/backend"
 	"github.com/awesome-my/backend/database"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofrs/uuid"
 )
 
@@ -21,6 +22,7 @@ type Client struct {
 	database       *sql.DB
 	queries        *database.Queries
 	sessionManager *scs.SessionManager
+	validator      *validator.Validate
 }
 
 func NewClient(logger *slog.Logger, cfg awesomemy.Config, db *sql.DB, sm *scs.SessionManager) http.Handler {
@@ -30,12 +32,16 @@ func NewClient(logger *slog.Logger, cfg awesomemy.Config, db *sql.DB, sm *scs.Se
 		database:       db,
 		queries:        database.New(),
 		sessionManager: sm,
+		validator:      validator.New(),
 	}
 
 	r := chi.NewRouter()
 	r.Use(c.AuthenticateUser)
 	r.Route("/account", func(r chi.Router) {
 		r.Get("/", c.Account)
+	})
+	r.Route("/projects", func(r chi.Router) {
+		r.Post("/", c.StoreProject)
 	})
 
 	return r
@@ -72,10 +78,4 @@ func (c *Client) AuthenticateUser(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), awesomemy.CtxKeyAuthUser, user)))
 	})
-}
-
-func (c *Client) Account(w http.ResponseWriter, r *http.Request) {
-	authUser := awesomemy.MustContextValue[database.User](r.Context(), awesomemy.CtxKeyAuthUser)
-
-	json.NewEncoder(w).Encode(authUser)
 }
