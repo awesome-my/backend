@@ -1,0 +1,30 @@
+postgres:
+  name:
+  user:
+  password:
+  host: 127.0.0.1
+  port: 5432
+
+redis:
+  host: localhost
+  port: 6379
+
+http:
+  host: 127.0.0.1
+  port: 4000
+  cors: 
+    origin:
+authentication:
+  session:
+    prefix: awesomemy
+    name: awesomemy-session
+    persist: true
+    same_site: none
+    secure: false
+    lifetime: 24h
+  oauth2:
+    github:
+      client_id:
+      client_secret:
+
+frontend_base_url: http://localhost:3000
