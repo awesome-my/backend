@@ -122,6 +122,24 @@ func (c *Client) StoreProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	count, err := c.queries.CountUserProjects(r.Context(), c.database, authUser.UserID)
+	if err != nil {
+		c.logger.Error("could not fetch user projects count", slog.Any("err", err))
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Could not fetch user projects count.",
+		})
+		return
+	}
+
+	if count >= 20 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "You have hit the project limit, try deleting some unused projects.",
+		})
+		return
+	}
+
 	var repository nulls.String
 	if data.Repository != "" {
 		repository = nulls.String{
