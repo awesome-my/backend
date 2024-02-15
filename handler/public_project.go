@@ -11,6 +11,7 @@ import (
 	"github.com/awesome-my/backend"
 	"github.com/awesome-my/backend/database"
 	"github.com/go-chi/chi/v5"
+	"github.com/gobuffalo/nulls"
 	"github.com/gofrs/uuid"
 )
 
@@ -19,6 +20,8 @@ type Project struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Tags        []string  `json:"tags"`
+	Repository nulls.String `json:"repository"`
+	Website nulls.String `json:"website"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -28,16 +31,18 @@ func ProjectFromDatabase(p database.Project) Project {
 		Name:        p.Name,
 		Description: p.Description,
 		Tags:        p.Tags,
+		Repository: p.Repository,
+		Website: p.Website,
 		CreatedAt:   p.CreatedAt,
 	}
 }
 
 func (p *Public) Projects(w http.ResponseWriter, r *http.Request) {
-	page, offset := awesomemy.PageAndOffsetFromRequest(r)
+	page, limit, offset := awesomemy.PageLimitOffsetFromRequest(r)
 
 	projects, err := p.queries.ProjectsByOffsetLimit(r.Context(), p.database, database.ProjectsByOffsetLimitParams{
 		Offset: int32(offset),
-		Limit:  10,
+		Limit:  int32(limit),
 	})
 	if err != nil {
 		p.logger.Error("could not fetch projects by limit offset", slog.Any("err", err))

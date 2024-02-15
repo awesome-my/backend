@@ -7,6 +7,7 @@ package database
 import (
 	"time"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gofrs/uuid"
 )
 
@@ -18,6 +19,8 @@ type Project struct {
 	Tags        []string
 	UserID      int32
 	CreatedAt   time.Time
+	Repository  nulls.String
+	Website     nulls.String
 }
 
 type User struct {

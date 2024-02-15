@@ -41,8 +41,10 @@ func NewClient(logger *slog.Logger, cfg awesomemy.Config, db *sql.DB, sm *scs.Se
 		r.Get("/", c.Account)
 	})
 	r.Route("/projects", func(r chi.Router) {
+		r.Get("/", c.Projects)
 		r.Post("/", c.StoreProject)
 		r.Route("/{project}", func(r chi.Router) {
+			r.Get("/", c.Project)
 			r.Post("/", c.UpdateProject)
 			r.Delete("/", c.DeleteProject)
 		})
