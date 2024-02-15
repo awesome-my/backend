@@ -11,7 +11,7 @@ INSERT INTO projects (name, description, tags, repository, website, user_id) VAL
 SELECT * FROM projects WHERE uuid = $1 LIMIT 1;
 
 -- name: UpdateProject :one
-UPDATE projects SET name = $1, description = $2, tags = $3 WHERE project_id = $4 RETURNING *;
+UPDATE projects SET name = $1, description = $2, tags = $3, repository = $4, website = $5 WHERE project_id = $6 RETURNING *;
 
 -- name: DeleteProject :exec
 DELETE FROM projects WHERE project_id = $1;

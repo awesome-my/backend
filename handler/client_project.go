@@ -202,6 +202,8 @@ func (c *Client) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		Name        string   `json:"name" validate:"required,min=8,max=191"`
 		Description string   `json:"description" validate:"required,min=8,max=512"`
 		Tags        []string `json:"tags" validate:"dive,min=4,max=12"`
+		Repository  string   `json:"repository" validate:"omitempty,url,max=191"`
+		Website     string   `json:"website" validate:"omitempty,url,max=191"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -219,10 +221,29 @@ func (c *Client) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var repository nulls.String
+	if data.Repository != "" {
+		repository = nulls.String{
+			String: data.Repository,
+			Valid:  true,
+		}
+	}
+
+	var website nulls.String
+	if data.Website != "" {
+		website = nulls.String{
+			String: data.Website,
+			Valid:  true,
+		}
+	}
+
 	project, err = c.queries.UpdateProject(r.Context(), c.database, database.UpdateProjectParams{
 		Name:        data.Name,
 		Description: data.Description,
 		Tags:        data.Tags,
+		Repository: repository,
+		Website: website,
+		ProjectID: project.ProjectID,
 	})
 	if err != nil {
 		c.logger.Error("could not update project", slog.Any("err", err))

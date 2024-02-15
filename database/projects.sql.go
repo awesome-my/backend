@@ -145,13 +145,15 @@ func (q *Queries) ProjectsByOffsetLimit(ctx context.Context, db DBTX, arg Projec
 }
 
 const updateProject = `-- name: UpdateProject :one
-UPDATE projects SET name = $1, description = $2, tags = $3 WHERE project_id = $4 RETURNING project_id, uuid, name, description, tags, user_id, created_at, repository, website
+UPDATE projects SET name = $1, description = $2, tags = $3, repository = $4, website = $5 WHERE project_id = $6 RETURNING project_id, uuid, name, description, tags, user_id, created_at, repository, website
 `
 
 type UpdateProjectParams struct {
 	Name        string
 	Description string
 	Tags        []string
+	Repository  nulls.String
+	Website     nulls.String
 	ProjectID   int32
 }
 
@@ -160,6 +162,8 @@ func (q *Queries) UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectP
 		arg.Name,
 		arg.Description,
 		pq.Array(arg.Tags),
+		arg.Repository,
+		arg.Website,
 		arg.ProjectID,
 	)
 	var i Project
