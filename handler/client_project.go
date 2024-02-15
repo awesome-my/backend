@@ -241,9 +241,9 @@ func (c *Client) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		Name:        data.Name,
 		Description: data.Description,
 		Tags:        data.Tags,
-		Repository: repository,
-		Website: website,
-		ProjectID: project.ProjectID,
+		Repository:  repository,
+		Website:     website,
+		ProjectID:   project.ProjectID,
 	})
 	if err != nil {
 		c.logger.Error("could not update project", slog.Any("err", err))

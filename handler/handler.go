@@ -3,14 +3,17 @@ package handler
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"slices"
+	"time"
 
 	"github.com/alexedwards/scs/redisstore"
 	"github.com/alexedwards/scs/v2"
 	"github.com/awesome-my/backend"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/httprate"
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/go-github/v55/github"
 	"golang.org/x/oauth2"
@@ -42,7 +45,26 @@ func New(logger *slog.Logger, cfg awesomemy.Config, db *sql.DB) http.Handler {
 	}
 
 	r := chi.NewRouter()
-	r.Use(sm.LoadAndSave, corsMiddleware(cfg))
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "The resource you are looking for could not be found.",
+		})
+	})
+	r.Use(
+		httprate.Limit(
+			50,
+			1*time.Minute,
+			httprate.WithLimitHandler(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusTooManyRequests)
+				json.NewEncoder(w).Encode(map[string]string{
+					"message": "You have hit the rate limit, try again later.",
+				})
+			}),
+		),
+		sm.LoadAndSave,
+		corsMiddleware(cfg),
+	)
 	r.Mount("/public", NewPublic(logger, cfg, db))
 	r.Mount("/auth", NewAuth(logger, cfg, db, sm))
 	r.Mount("/client", NewClient(logger, cfg, db, sm))
