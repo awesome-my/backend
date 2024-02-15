@@ -9,7 +9,7 @@ import (
 // PageAndOffsetFromRequest extracts the page and offset from an HTTP request.
 func PageAndOffsetFromRequest(r *http.Request) (int, int) {
 	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	if page == 0 {
+	if page < 1 {
 		page = 1
 	}
 
@@ -28,7 +28,7 @@ type PaginationMeta struct {
 func NewPaginationMeta(currentPage, count, total int) PaginationMeta {
 	return PaginationMeta{
 		CurrentPage: currentPage,
-		TotalPages:  int(math.Ceil(float64(count) / float64(10))),
+		TotalPages:  int(math.Ceil(float64(total) / float64(10))),
 		Count:       count,
 		Total:       total,
 	}
