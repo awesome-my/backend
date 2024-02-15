@@ -36,6 +36,7 @@ func NewAuth(logger *slog.Logger, cfg awesomemy.Config, db *sql.DB, sm *scs.Sess
 		r.Get("/", a.OAuth2)
 		r.Get("/callback", a.OAuth2Callback)
 	})
+	r.Post("/logout", a.Logout)
 
 	return r
 }
@@ -106,17 +107,16 @@ func (a *Auth) OAuth2Callback(w http.ResponseWriter, r *http.Request) {
 				json.NewEncoder(w).Encode(map[string]string{
 					"message": "Could not insert user into database.",
 				})
+				return
 			}
-
+		} else {
+			a.logger.Error("could not fetch user by github email", slog.Any("err", err))
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{
+				"message": "Could not fetch user by GitHub email.",
+			})
 			return
 		}
-
-		a.logger.Error("could not fetch user by github email", slog.Any("err", err))
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Could not fetch user by GitHub email.",
-		})
-		return
 	}
 
 	if err := a.sessionManager.RenewToken(r.Context()); err != nil {
@@ -131,4 +131,17 @@ func (a *Auth) OAuth2Callback(w http.ResponseWriter, r *http.Request) {
 	a.sessionManager.Put(r.Context(), "user:uuid", user.Uuid.String())
 
 	http.Redirect(w, r, a.config.FrontendBaseURL, http.StatusTemporaryRedirect)
+}
+
+func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
+	if err := a.sessionManager.RenewToken(r.Context()); err != nil {
+		a.logger.Error("could not renew request session token", slog.Any("err", err))
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Could not renew the request session token.",
+		})
+		return
+	}
+
+	a.sessionManager.Put(r.Context(), "user:uuid", "")
 }

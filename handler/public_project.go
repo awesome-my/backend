@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/awesome-my/backend"
 	"github.com/awesome-my/backend/database"
@@ -18,6 +19,7 @@ type Project struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	Tags        []string  `json:"tags"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 func ProjectFromDatabase(p database.Project) Project {
@@ -26,6 +28,7 @@ func ProjectFromDatabase(p database.Project) Project {
 		Name:        p.Name,
 		Description: p.Description,
 		Tags:        p.Tags,
+		CreatedAt:   p.CreatedAt,
 	}
 }
 

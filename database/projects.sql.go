@@ -23,8 +23,17 @@ func (q *Queries) CountProjects(ctx context.Context, db DBTX) (int64, error) {
 	return count, err
 }
 
+const deleteProject = `-- name: DeleteProject :exec
+DELETE FROM projects WHERE project_id = $1
+`
+
+func (q *Queries) DeleteProject(ctx context.Context, db DBTX, projectID int32) error {
+	_, err := db.ExecContext(ctx, deleteProject, projectID)
+	return err
+}
+
 const insertProject = `-- name: InsertProject :one
-INSERT INTO projects (name, description, tags, user_id) VALUES ($1, $2, $3, $4) RETURNING project_id, uuid, name, description, tags, user_id
+INSERT INTO projects (name, description, tags, user_id) VALUES ($1, $2, $3, $4) RETURNING project_id, uuid, name, description, tags, user_id, created_at
 `
 
 type InsertProjectParams struct {
@@ -49,12 +58,13 @@ func (q *Queries) InsertProject(ctx context.Context, db DBTX, arg InsertProjectP
 		&i.Description,
 		pq.Array(&i.Tags),
 		&i.UserID,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const projectByUUID = `-- name: ProjectByUUID :one
-SELECT project_id, uuid, name, description, tags, user_id FROM projects WHERE uuid = $1 LIMIT 1
+SELECT project_id, uuid, name, description, tags, user_id, created_at FROM projects WHERE uuid = $1 LIMIT 1
 `
 
 func (q *Queries) ProjectByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID) (Project, error) {
@@ -67,12 +77,13 @@ func (q *Queries) ProjectByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID)
 		&i.Description,
 		pq.Array(&i.Tags),
 		&i.UserID,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const projectsByOffsetLimit = `-- name: ProjectsByOffsetLimit :many
-SELECT project_id, uuid, name, description, tags, user_id FROM projects OFFSET $1 LIMIT $2
+SELECT project_id, uuid, name, description, tags, user_id, created_at FROM projects OFFSET $1 LIMIT $2
 `
 
 type ProjectsByOffsetLimitParams struct {
@@ -96,6 +107,7 @@ func (q *Queries) ProjectsByOffsetLimit(ctx context.Context, db DBTX, arg Projec
 			&i.Description,
 			pq.Array(&i.Tags),
 			&i.UserID,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -108,4 +120,35 @@ func (q *Queries) ProjectsByOffsetLimit(ctx context.Context, db DBTX, arg Projec
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateProject = `-- name: UpdateProject :one
+UPDATE projects SET name = $1, description = $2, tags = $3 WHERE project_id = $4 RETURNING project_id, uuid, name, description, tags, user_id, created_at
+`
+
+type UpdateProjectParams struct {
+	Name        string
+	Description string
+	Tags        []string
+	ProjectID   int32
+}
+
+func (q *Queries) UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectParams) (Project, error) {
+	row := db.QueryRowContext(ctx, updateProject,
+		arg.Name,
+		arg.Description,
+		pq.Array(arg.Tags),
+		arg.ProjectID,
+	)
+	var i Project
+	err := row.Scan(
+		&i.ProjectID,
+		&i.Uuid,
+		&i.Name,
+		&i.Description,
+		pq.Array(&i.Tags),
+		&i.UserID,
+		&i.CreatedAt,
+	)
+	return i, err
 }

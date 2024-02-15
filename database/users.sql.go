@@ -12,34 +12,49 @@ import (
 )
 
 const insertUser = `-- name: InsertUser :one
-INSERT INTO users (github_email) VALUES ($1) RETURNING user_id, uuid, github_email
+INSERT INTO users (github_email) VALUES ($1) RETURNING user_id, uuid, github_email, created_at
 `
 
 func (q *Queries) InsertUser(ctx context.Context, db DBTX, githubEmail string) (User, error) {
 	row := db.QueryRowContext(ctx, insertUser, githubEmail)
 	var i User
-	err := row.Scan(&i.UserID, &i.Uuid, &i.GithubEmail)
+	err := row.Scan(
+		&i.UserID,
+		&i.Uuid,
+		&i.GithubEmail,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
 const userByGithubEmail = `-- name: UserByGithubEmail :one
-SELECT user_id, uuid, github_email FROM users WHERE github_email = $1 LIMIT 1
+SELECT user_id, uuid, github_email, created_at FROM users WHERE github_email = $1 LIMIT 1
 `
 
 func (q *Queries) UserByGithubEmail(ctx context.Context, db DBTX, githubEmail string) (User, error) {
 	row := db.QueryRowContext(ctx, userByGithubEmail, githubEmail)
 	var i User
-	err := row.Scan(&i.UserID, &i.Uuid, &i.GithubEmail)
+	err := row.Scan(
+		&i.UserID,
+		&i.Uuid,
+		&i.GithubEmail,
+		&i.CreatedAt,
+	)
 	return i, err
 }
 
 const userByUUID = `-- name: UserByUUID :one
-SELECT user_id, uuid, github_email FROM users WHERE uuid = $1 LIMIT 1
+SELECT user_id, uuid, github_email, created_at FROM users WHERE uuid = $1 LIMIT 1
 `
 
 func (q *Queries) UserByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID) (User, error) {
 	row := db.QueryRowContext(ctx, userByUUID, argUuid)
 	var i User
-	err := row.Scan(&i.UserID, &i.Uuid, &i.GithubEmail)
+	err := row.Scan(
+		&i.UserID,
+		&i.Uuid,
+		&i.GithubEmail,
+		&i.CreatedAt,
+	)
 	return i, err
 }

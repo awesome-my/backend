@@ -5,6 +5,8 @@
 package database
 
 import (
+	"time"
+
 	"github.com/gofrs/uuid"
 )
 
@@ -15,10 +17,12 @@ type Project struct {
 	Description string
 	Tags        []string
 	UserID      int32
+	CreatedAt   time.Time
 }
 
 type User struct {
 	UserID      int32
 	Uuid        uuid.UUID
 	GithubEmail string
+	CreatedAt   time.Time
 }
