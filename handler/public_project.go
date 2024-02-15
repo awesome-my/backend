@@ -16,13 +16,13 @@ import (
 )
 
 type Project struct {
-	Uuid        uuid.UUID `json:"uuid"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Tags        []string  `json:"tags"`
-	Repository nulls.String `json:"repository"`
-	Website nulls.String `json:"website"`
-	CreatedAt   time.Time `json:"created_at"`
+	Uuid        uuid.UUID    `json:"uuid"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	Tags        []string     `json:"tags"`
+	Repository  nulls.String `json:"repository"`
+	Website     nulls.String `json:"website"`
+	CreatedAt   time.Time    `json:"created_at"`
 }
 
 func ProjectFromDatabase(p database.Project) Project {
@@ -31,8 +31,8 @@ func ProjectFromDatabase(p database.Project) Project {
 		Name:        p.Name,
 		Description: p.Description,
 		Tags:        p.Tags,
-		Repository: p.Repository,
-		Website: p.Website,
+		Repository:  p.Repository,
+		Website:     p.Website,
 		CreatedAt:   p.CreatedAt,
 	}
 }

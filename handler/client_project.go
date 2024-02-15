@@ -103,8 +103,8 @@ func (c *Client) StoreProject(w http.ResponseWriter, r *http.Request) {
 		Name        string   `json:"name" validate:"required,min=8,max=191"`
 		Description string   `json:"description" validate:"required,min=8,max=512"`
 		Tags        []string `json:"tags" validate:"min=0,max=6,dive,min=4,max=12"`
-		Repository string `json:"repository" validate:"omitempty,url,max=191"`
-		Website string `json:"website" validate:"omitempty,url,max=191"`
+		Repository  string   `json:"repository" validate:"omitempty,url,max=191"`
+		Website     string   `json:"website" validate:"omitempty,url,max=191"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -126,7 +126,7 @@ func (c *Client) StoreProject(w http.ResponseWriter, r *http.Request) {
 	if data.Repository != "" {
 		repository = nulls.String{
 			String: data.Repository,
-			Valid: true,
+			Valid:  true,
 		}
 	}
 
@@ -134,7 +134,7 @@ func (c *Client) StoreProject(w http.ResponseWriter, r *http.Request) {
 	if data.Website != "" {
 		website = nulls.String{
 			String: data.Website,
-			Valid: true,
+			Valid:  true,
 		}
 	}
 
@@ -142,8 +142,8 @@ func (c *Client) StoreProject(w http.ResponseWriter, r *http.Request) {
 		Name:        data.Name,
 		Description: data.Description,
 		Tags:        data.Tags,
-		Repository: repository,
-		Website: website,
+		Repository:  repository,
+		Website:     website,
 		UserID:      authUser.UserID,
 	})
 	if err != nil {
