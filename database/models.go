@@ -11,6 +11,19 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+type Event struct {
+	EventID     int32
+	Uuid        uuid.UUID
+	Name        string
+	Description string
+	Tags        []string
+	StartsAt    time.Time
+	EndsAt      time.Time
+	CreatedAt   time.Time
+	Website     nulls.String
+	UserID      int32
+}
+
 type Project struct {
 	ProjectID   int32
 	Uuid        uuid.UUID
