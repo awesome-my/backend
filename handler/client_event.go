@@ -101,12 +101,12 @@ func (c *Client) StoreEvent(w http.ResponseWriter, r *http.Request) {
 	authUser := awesomemy.MustContextValue[database.User](r.Context(), awesomemy.CtxKeyAuthUser)
 
 	var data struct {
-		Name        string   `json:"name" validate:"required,min=8,max=191"`
-		Description string   `json:"description" validate:"required,min=8,max=512"`
-		Tags        []string `json:"tags" validate:"min=0,max=6,dive,min=4,max=12"`
-		Website     string   `json:"website" validate:"omitempty,url,max=191"`
-		StartsAt time.Time `json:"starts_at" validate:"required"`
-		EndsAt time.Time `json:"ends_at" validate:"required"`
+		Name        string    `json:"name" validate:"required,min=8,max=191"`
+		Description string    `json:"description" validate:"required,min=8,max=512"`
+		Tags        []string  `json:"tags" validate:"min=0,max=6,dive,min=4,max=12"`
+		Website     string    `json:"website" validate:"omitempty,url,max=191"`
+		StartsAt    time.Time `json:"starts_at" validate:"required"`
+		EndsAt      time.Time `json:"ends_at" validate:"required"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -155,8 +155,8 @@ func (c *Client) StoreEvent(w http.ResponseWriter, r *http.Request) {
 		Description: data.Description,
 		Tags:        data.Tags,
 		Website:     website,
-		StartsAt: data.StartsAt,
-		EndsAt: data.EndsAt,
+		StartsAt:    data.StartsAt,
+		EndsAt:      data.EndsAt,
 		UserID:      authUser.UserID,
 	})
 	if err != nil {
@@ -212,12 +212,12 @@ func (c *Client) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var data struct {
-		Name        string   `json:"name" validate:"required,min=8,max=191"`
-		Description string   `json:"description" validate:"required,min=8,max=512"`
-		Tags        []string `json:"tags" validate:"min=0,max=6,dive,min=4,max=12"`
-		Website     string   `json:"website" validate:"omitempty,url,max=191"`
-		StartsAt time.Time `json:"starts_at" validate:"required"`
-		EndsAt time.Time `json:"ends_at" validate:"required"`
+		Name        string    `json:"name" validate:"required,min=8,max=191"`
+		Description string    `json:"description" validate:"required,min=8,max=512"`
+		Tags        []string  `json:"tags" validate:"min=0,max=6,dive,min=4,max=12"`
+		Website     string    `json:"website" validate:"omitempty,url,max=191"`
+		StartsAt    time.Time `json:"starts_at" validate:"required"`
+		EndsAt      time.Time `json:"ends_at" validate:"required"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -248,9 +248,9 @@ func (c *Client) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 		Description: data.Description,
 		Tags:        data.Tags,
 		Website:     website,
-		StartsAt: data.StartsAt,
-		EndsAt: data.EndsAt,
-		EventID:   event.EventID,
+		StartsAt:    data.StartsAt,
+		EndsAt:      data.EndsAt,
+		EventID:     event.EventID,
 	})
 	if err != nil {
 		c.logger.Error("could not update event", slog.Any("err", err))

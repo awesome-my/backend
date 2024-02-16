@@ -20,9 +20,9 @@ type Event struct {
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
 	Tags        []string     `json:"tags"`
-	Website nulls.String `json:"website"`
-	StartsAt time.Time `json:"starts_at"`
-	EndsAt time.Time `json:"ends_at"`
+	Website     nulls.String `json:"website"`
+	StartsAt    time.Time    `json:"starts_at"`
+	EndsAt      time.Time    `json:"ends_at"`
 	CreatedAt   time.Time    `json:"created_at"`
 }
 
@@ -32,9 +32,9 @@ func EventFromDatabase(e database.Event) Event {
 		Name:        e.Name,
 		Description: e.Description,
 		Tags:        e.Tags,
-		Website: e.Website,
-		StartsAt: e.StartsAt,
-		EndsAt: e.EndsAt,
+		Website:     e.Website,
+		StartsAt:    e.StartsAt,
+		EndsAt:      e.EndsAt,
 		CreatedAt:   e.CreatedAt,
 	}
 }
