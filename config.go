@@ -77,7 +77,7 @@ func (aac AuthenticationOAuth2Config) OAuth2Config(provider string) *oauth2.Conf
 			ClientID:     aac.GitHub.ClientID,
 			ClientSecret: aac.GitHub.ClientSecret,
 			Endpoint:     endpoints.GitHub,
-			Scopes:       []string{"user", "read:user", "user:email"},
+			Scopes:       []string{"read:user", "user:email"},
 		}
 	}
 
