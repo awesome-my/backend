@@ -1,5 +1,8 @@
--- name: EventsByOffsetLimit :many
-SELECT * FROM events OFFSET $1 LIMIT $2;
+-- name: EventsByAscOffsetLimit :many
+SELECT * FROM events ORDER BY event_id ASC OFFSET $1 LIMIT $2;
+
+-- name: EventsByDescOffsetLimit :many
+SELECT * FROM events ORDER BY event_id DESC OFFSET $1 LIMIT $2;
 
 -- name: CountEvents :one
 SELECT count(*) FROM events;
@@ -16,8 +19,11 @@ UPDATE events SET name = $1, description = $2, tags = $3, website = $4, starts_a
 -- name: DeleteEvent :exec
 DELETE FROM events WHERE event_id = $1;
 
--- name: UserEventsByOffsetLimit :many
-SELECT * FROM events WHERE user_id = $1 OFFSET $2 LIMIT $3;
+-- name: UserEventsByAscOffsetLimit :many
+SELECT * FROM events WHERE user_id = $1 ORDER BY event_id ASC OFFSET $2 LIMIT $3;
+
+-- name: UserEventsByDescOffsetLimit :many
+SELECT * FROM events WHERE user_id = $1 ORDER BY event_id DESC OFFSET $2 LIMIT $3;
 
 -- name: CountUserEvents :one
 SELECT count(*) FROM events WHERE user_id = $1;

@@ -39,11 +39,25 @@ func ProjectFromDatabase(p database.Project) Project {
 
 func (p *Public) Projects(w http.ResponseWriter, r *http.Request) {
 	page, limit, offset := awesomemy.PageLimitOffsetFromRequest(r)
+	orderBy := "desc"
+	if r.URL.Query().Get("orderBy") == "asc" {
+		orderBy = "asc"
+	}
 
-	projects, err := p.queries.ProjectsByOffsetLimit(r.Context(), p.database, database.ProjectsByOffsetLimitParams{
-		Offset: int32(offset),
-		Limit:  int32(limit),
-	})
+	var projects []database.Project
+	var err error
+	switch orderBy {
+	case "asc":
+		projects, err = p.queries.ProjectsByAscOffsetLimit(r.Context(), p.database, database.ProjectsByAscOffsetLimitParams{
+			Offset: int32(offset),
+			Limit:  int32(limit),
+		})
+	case "desc":
+		projects, err = p.queries.ProjectsByDescOffsetLimit(r.Context(), p.database, database.ProjectsByDescOffsetLimitParams{
+			Offset: int32(offset),
+			Limit:  int32(limit),
+		})
+	}
 	if err != nil {
 		p.logger.Error("could not fetch projects by limit offset", slog.Any("err", err))
 		w.WriteHeader(http.StatusInternalServerError)

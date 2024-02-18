@@ -17,12 +17,27 @@ import (
 func (c *Client) Projects(w http.ResponseWriter, r *http.Request) {
 	authUser := awesomemy.MustContextValue[database.User](r.Context(), awesomemy.CtxKeyAuthUser)
 	page, limit, offset := awesomemy.PageLimitOffsetFromRequest(r)
+	orderBy := "desc"
+	if r.URL.Query().Get("orderBy") == "asc" {
+		orderBy = "asc"
+	}
 
-	projects, err := c.queries.UserProjectsByOffsetLimit(r.Context(), c.database, database.UserProjectsByOffsetLimitParams{
-		UserID: authUser.UserID,
-		Offset: int32(offset),
-		Limit:  int32(limit),
-	})
+	var projects []database.Project
+	var err error
+	switch orderBy {
+	case "asc":
+		projects, err = c.queries.UserProjectsByAscOffsetLimit(r.Context(), c.database, database.UserProjectsByAscOffsetLimitParams{
+			Offset: int32(offset),
+			Limit:  int32(limit),
+			UserID: authUser.UserID,
+		})
+	case "desc":
+		projects, err = c.queries.UserProjectsByDescOffsetLimit(r.Context(), c.database, database.UserProjectsByDescOffsetLimitParams{
+			Offset: int32(offset),
+			Limit:  int32(limit),
+			UserID: authUser.UserID,
+		})
+	}
 	if err != nil {
 		c.logger.Error("could not fetch user projects by limit offset", slog.Any("err", err))
 		w.WriteHeader(http.StatusInternalServerError)

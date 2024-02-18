@@ -41,11 +41,25 @@ func EventFromDatabase(e database.Event) Event {
 
 func (p *Public) Events(w http.ResponseWriter, r *http.Request) {
 	page, limit, offset := awesomemy.PageLimitOffsetFromRequest(r)
+	orderBy := "desc"
+	if r.URL.Query().Get("orderBy") == "asc" {
+		orderBy = "asc"
+	}
 
-	events, err := p.queries.EventsByOffsetLimit(r.Context(), p.database, database.EventsByOffsetLimitParams{
-		Offset: int32(offset),
-		Limit:  int32(limit),
-	})
+	var events []database.Event
+	var err error
+	switch orderBy {
+	case "asc":
+		events, err = p.queries.EventsByAscOffsetLimit(r.Context(), p.database, database.EventsByAscOffsetLimitParams{
+			Offset: int32(offset),
+			Limit:  int32(limit),
+		})
+	case "desc":
+		events, err = p.queries.EventsByDescOffsetLimit(r.Context(), p.database, database.EventsByDescOffsetLimitParams{
+			Offset: int32(offset),
+			Limit:  int32(limit),
+		})
+	}
 	if err != nil {
 		p.logger.Error("could not fetch events by limit offset", slog.Any("err", err))
 		w.WriteHeader(http.StatusInternalServerError)

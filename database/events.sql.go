@@ -67,17 +67,60 @@ func (q *Queries) EventByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID) (
 	return i, err
 }
 
-const eventsByOffsetLimit = `-- name: EventsByOffsetLimit :many
-SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events OFFSET $1 LIMIT $2
+const eventsByAscOffsetLimit = `-- name: EventsByAscOffsetLimit :many
+SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events ORDER BY event_id ASC OFFSET $1 LIMIT $2
 `
 
-type EventsByOffsetLimitParams struct {
+type EventsByAscOffsetLimitParams struct {
 	Offset int32
 	Limit  int32
 }
 
-func (q *Queries) EventsByOffsetLimit(ctx context.Context, db DBTX, arg EventsByOffsetLimitParams) ([]Event, error) {
-	rows, err := db.QueryContext(ctx, eventsByOffsetLimit, arg.Offset, arg.Limit)
+func (q *Queries) EventsByAscOffsetLimit(ctx context.Context, db DBTX, arg EventsByAscOffsetLimitParams) ([]Event, error) {
+	rows, err := db.QueryContext(ctx, eventsByAscOffsetLimit, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Event
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.EventID,
+			&i.Uuid,
+			&i.Name,
+			&i.Description,
+			pq.Array(&i.Tags),
+			&i.StartsAt,
+			&i.EndsAt,
+			&i.CreatedAt,
+			&i.Website,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const eventsByDescOffsetLimit = `-- name: EventsByDescOffsetLimit :many
+SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events ORDER BY event_id DESC OFFSET $1 LIMIT $2
+`
+
+type EventsByDescOffsetLimitParams struct {
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) EventsByDescOffsetLimit(ctx context.Context, db DBTX, arg EventsByDescOffsetLimitParams) ([]Event, error) {
+	rows, err := db.QueryContext(ctx, eventsByDescOffsetLimit, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -190,18 +233,62 @@ func (q *Queries) UpdateEvent(ctx context.Context, db DBTX, arg UpdateEventParam
 	return i, err
 }
 
-const userEventsByOffsetLimit = `-- name: UserEventsByOffsetLimit :many
-SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events WHERE user_id = $1 OFFSET $2 LIMIT $3
+const userEventsByAscOffsetLimit = `-- name: UserEventsByAscOffsetLimit :many
+SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events WHERE user_id = $1 ORDER BY event_id ASC OFFSET $2 LIMIT $3
 `
 
-type UserEventsByOffsetLimitParams struct {
+type UserEventsByAscOffsetLimitParams struct {
 	UserID int32
 	Offset int32
 	Limit  int32
 }
 
-func (q *Queries) UserEventsByOffsetLimit(ctx context.Context, db DBTX, arg UserEventsByOffsetLimitParams) ([]Event, error) {
-	rows, err := db.QueryContext(ctx, userEventsByOffsetLimit, arg.UserID, arg.Offset, arg.Limit)
+func (q *Queries) UserEventsByAscOffsetLimit(ctx context.Context, db DBTX, arg UserEventsByAscOffsetLimitParams) ([]Event, error) {
+	rows, err := db.QueryContext(ctx, userEventsByAscOffsetLimit, arg.UserID, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Event
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.EventID,
+			&i.Uuid,
+			&i.Name,
+			&i.Description,
+			pq.Array(&i.Tags),
+			&i.StartsAt,
+			&i.EndsAt,
+			&i.CreatedAt,
+			&i.Website,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const userEventsByDescOffsetLimit = `-- name: UserEventsByDescOffsetLimit :many
+SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events WHERE user_id = $1 ORDER BY event_id DESC OFFSET $2 LIMIT $3
+`
+
+type UserEventsByDescOffsetLimitParams struct {
+	UserID int32
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) UserEventsByDescOffsetLimit(ctx context.Context, db DBTX, arg UserEventsByDescOffsetLimitParams) ([]Event, error) {
+	rows, err := db.QueryContext(ctx, userEventsByDescOffsetLimit, arg.UserID, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

@@ -18,12 +18,27 @@ import (
 func (c *Client) Events(w http.ResponseWriter, r *http.Request) {
 	authUser := awesomemy.MustContextValue[database.User](r.Context(), awesomemy.CtxKeyAuthUser)
 	page, limit, offset := awesomemy.PageLimitOffsetFromRequest(r)
+	orderBy := "desc"
+	if r.URL.Query().Get("orderBy") == "asc" {
+		orderBy = "asc"
+	}
 
-	events, err := c.queries.UserEventsByOffsetLimit(r.Context(), c.database, database.UserEventsByOffsetLimitParams{
-		UserID: authUser.UserID,
-		Offset: int32(offset),
-		Limit:  int32(limit),
-	})
+	var events []database.Event
+	var err error
+	switch orderBy {
+	case "asc":
+		events, err = c.queries.UserEventsByAscOffsetLimit(r.Context(), c.database, database.UserEventsByAscOffsetLimitParams{
+			Offset: int32(offset),
+			Limit:  int32(limit),
+			UserID: authUser.UserID,
+		})
+	case "desc":
+		events, err = c.queries.UserEventsByDescOffsetLimit(r.Context(), c.database, database.UserEventsByDescOffsetLimitParams{
+			Offset: int32(offset),
+			Limit:  int32(limit),
+			UserID: authUser.UserID,
+		})
+	}
 	if err != nil {
 		c.logger.Error("could not fetch user events by limit offset", slog.Any("err", err))
 		w.WriteHeader(http.StatusInternalServerError)

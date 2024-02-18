@@ -1,5 +1,8 @@
--- name: ProjectsByOffsetLimit :many
-SELECT * FROM projects OFFSET $1 LIMIT $2;
+-- name: ProjectsByAscOffsetLimit :many
+SELECT * FROM projects ORDER BY project_id ASC OFFSET $1 LIMIT $2;
+
+-- name: ProjectsByDescOffsetLimit :many
+SELECT * FROM projects ORDER BY project_id DESC OFFSET $1 LIMIT $2;
 
 -- name: CountProjects :one
 SELECT count(*) FROM projects;
@@ -16,8 +19,11 @@ UPDATE projects SET name = $1, description = $2, tags = $3, repository = $4, web
 -- name: DeleteProject :exec
 DELETE FROM projects WHERE project_id = $1;
 
--- name: UserProjectsByOffsetLimit :many
-SELECT * FROM projects WHERE user_id = $1 OFFSET $2 LIMIT $3;
+-- name: UserProjectsByAscOffsetLimit :many
+SELECT * FROM projects WHERE user_id = $1 ORDER BY project_id ASC OFFSET $2 LIMIT $3;
+
+-- name: UserProjectsByDescOffsetLimit :many
+SELECT * FROM projects WHERE user_id = $1 ORDER BY project_id DESC OFFSET $2 LIMIT $3;
 
 -- name: CountUserProjects :one
 SELECT count(*) FROM projects WHERE user_id = $1;
