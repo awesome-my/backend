@@ -27,3 +27,12 @@ SELECT * FROM projects WHERE user_id = $1 ORDER BY project_id DESC OFFSET $2 LIM
 
 -- name: CountUserProjects :one
 SELECT count(*) FROM projects WHERE user_id = $1;
+
+-- name: ProjectsByTagsAscOffsetLimit :many
+SELECT * FROM projects WHERE tags && $1 ORDER BY project_id ASC OFFSET $2 LIMIT $3;
+
+-- name: ProjectsByTagsDescOffsetLimit :many
+SELECT * FROM projects WHERE tags && $1 ORDER BY project_id DESC OFFSET $2 LIMIT $3;
+
+-- name: CountProjectsByTags :one
+SELECT count(*) FROM projects WHERE tags && $1;

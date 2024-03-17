@@ -27,3 +27,12 @@ SELECT * FROM events WHERE user_id = $1 ORDER BY event_id DESC OFFSET $2 LIMIT $
 
 -- name: CountUserEvents :one
 SELECT count(*) FROM events WHERE user_id = $1;
+
+-- name: EventsByTagsAscOffsetLimit :many
+SELECT * FROM events WHERE tags && $1 ORDER BY event_id ASC OFFSET $2 LIMIT $3;
+
+-- name: EventsByTagsDescOffsetLimit :many
+SELECT * FROM events WHERE tags && $1 ORDER BY event_id DESC OFFSET $2 LIMIT $3;
+
+-- name: CountEventsByTags :one
+SELECT count(*) FROM events WHERE tags && $1;

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/awesome-my/backend"
@@ -39,24 +40,46 @@ func ProjectFromDatabase(p database.Project) Project {
 
 func (p *Public) Projects(w http.ResponseWriter, r *http.Request) {
 	page, limit, offset := awesomemy.PageLimitOffsetFromRequest(r)
+
+	var tags []string
+	if r.URL.Query().Get("tags") != "" {
+		tags = strings.Split(r.URL.Query().Get("tags"), ",")
+	}
+
 	orderBy := "desc"
 	if r.URL.Query().Get("orderBy") == "asc" {
 		orderBy = "asc"
 	}
 
-	var projects []database.Project
 	var err error
+	var projects []database.Project
 	switch orderBy {
 	case "asc":
-		projects, err = p.queries.ProjectsByAscOffsetLimit(r.Context(), p.database, database.ProjectsByAscOffsetLimitParams{
-			Offset: int32(offset),
-			Limit:  int32(limit),
-		})
+		if len(tags) > 0 {
+			projects, err = p.queries.ProjectsByTagsAscOffsetLimit(r.Context(), p.database, database.ProjectsByTagsAscOffsetLimitParams{
+				Tags:   tags,
+				Offset: int32(offset),
+				Limit:  int32(limit),
+			})
+		} else {
+			projects, err = p.queries.ProjectsByAscOffsetLimit(r.Context(), p.database, database.ProjectsByAscOffsetLimitParams{
+				Offset: int32(offset),
+				Limit:  int32(limit),
+			})
+		}
 	case "desc":
-		projects, err = p.queries.ProjectsByDescOffsetLimit(r.Context(), p.database, database.ProjectsByDescOffsetLimitParams{
-			Offset: int32(offset),
-			Limit:  int32(limit),
-		})
+		if len(tags) > 0 {
+			projects, err = p.queries.ProjectsByTagsDescOffsetLimit(r.Context(), p.database, database.ProjectsByTagsDescOffsetLimitParams{
+				Tags:   tags,
+				Offset: int32(offset),
+				Limit:  int32(limit),
+			})
+		} else {
+			projects, err = p.queries.ProjectsByDescOffsetLimit(r.Context(), p.database, database.ProjectsByDescOffsetLimitParams{
+				Offset: int32(offset),
+				Limit:  int32(limit),
+			})
+		}
 	}
 	if err != nil {
 		p.logger.Error("could not fetch projects by limit offset", slog.Any("err", err))
@@ -67,7 +90,12 @@ func (p *Public) Projects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	total, err := p.queries.CountProjects(r.Context(), p.database)
+	var total int64
+	if len(tags) > 0 {
+		total, err = p.queries.CountProjectsByTags(r.Context(), p.database, tags)
+	} else {
+		total, err = p.queries.CountProjects(r.Context(), p.database)
+	}
 	if err != nil {
 		p.logger.Error("could not fetch projects count", slog.Any("err", err))
 		w.WriteHeader(http.StatusInternalServerError)

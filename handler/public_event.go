@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/awesome-my/backend"
@@ -41,24 +42,46 @@ func EventFromDatabase(e database.Event) Event {
 
 func (p *Public) Events(w http.ResponseWriter, r *http.Request) {
 	page, limit, offset := awesomemy.PageLimitOffsetFromRequest(r)
+
+	var tags []string
+	if r.URL.Query().Get("tags") != "" {
+		tags = strings.Split(r.URL.Query().Get("tags"), ",")
+	}
+
 	orderBy := "desc"
 	if r.URL.Query().Get("orderBy") == "asc" {
 		orderBy = "asc"
 	}
 
-	var events []database.Event
 	var err error
+	var events []database.Event
 	switch orderBy {
 	case "asc":
-		events, err = p.queries.EventsByAscOffsetLimit(r.Context(), p.database, database.EventsByAscOffsetLimitParams{
-			Offset: int32(offset),
-			Limit:  int32(limit),
-		})
+		if len(tags) > 0 {
+			events, err = p.queries.EventsByTagsAscOffsetLimit(r.Context(), p.database, database.EventsByTagsAscOffsetLimitParams{
+				Tags:   tags,
+				Offset: int32(offset),
+				Limit:  int32(limit),
+			})
+		} else {
+			events, err = p.queries.EventsByAscOffsetLimit(r.Context(), p.database, database.EventsByAscOffsetLimitParams{
+				Offset: int32(offset),
+				Limit:  int32(limit),
+			})
+		}
 	case "desc":
-		events, err = p.queries.EventsByDescOffsetLimit(r.Context(), p.database, database.EventsByDescOffsetLimitParams{
-			Offset: int32(offset),
-			Limit:  int32(limit),
-		})
+		if len(tags) > 0 {
+			events, err = p.queries.EventsByTagsDescOffsetLimit(r.Context(), p.database, database.EventsByTagsDescOffsetLimitParams{
+				Tags:   tags,
+				Offset: int32(offset),
+				Limit:  int32(limit),
+			})
+		} else {
+			events, err = p.queries.EventsByDescOffsetLimit(r.Context(), p.database, database.EventsByDescOffsetLimitParams{
+				Offset: int32(offset),
+				Limit:  int32(limit),
+			})
+		}
 	}
 	if err != nil {
 		p.logger.Error("could not fetch events by limit offset", slog.Any("err", err))
@@ -69,7 +92,12 @@ func (p *Public) Events(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	total, err := p.queries.CountEvents(r.Context(), p.database)
+	var total int64
+	if len(tags) > 0 {
+		total, err = p.queries.CountEventsByTags(r.Context(), p.database, tags)
+	} else {
+		total, err = p.queries.CountEvents(r.Context(), p.database)
+	}
 	if err != nil {
 		p.logger.Error("could not fetch events count", slog.Any("err", err))
 		w.WriteHeader(http.StatusInternalServerError)

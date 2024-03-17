@@ -17,6 +17,7 @@ import (
 func (c *Client) Projects(w http.ResponseWriter, r *http.Request) {
 	authUser := awesomemy.MustContextValue[database.User](r.Context(), awesomemy.CtxKeyAuthUser)
 	page, limit, offset := awesomemy.PageLimitOffsetFromRequest(r)
+
 	orderBy := "desc"
 	if r.URL.Query().Get("orderBy") == "asc" {
 		orderBy = "asc"
