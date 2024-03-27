@@ -8,30 +8,37 @@ package database
 import (
 	"context"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gofrs/uuid"
 )
 
 const insertUser = `-- name: InsertUser :one
-INSERT INTO users (github_email) VALUES ($1) RETURNING user_id, uuid, github_email, created_at
+INSERT INTO users (github_email, google_email) VALUES ($1, $2) RETURNING user_id, uuid, github_email, created_at, google_email
 `
 
-func (q *Queries) InsertUser(ctx context.Context, db DBTX, githubEmail string) (User, error) {
-	row := db.QueryRowContext(ctx, insertUser, githubEmail)
+type InsertUserParams struct {
+	GithubEmail nulls.String
+	GoogleEmail nulls.String
+}
+
+func (q *Queries) InsertUser(ctx context.Context, db DBTX, arg InsertUserParams) (User, error) {
+	row := db.QueryRowContext(ctx, insertUser, arg.GithubEmail, arg.GoogleEmail)
 	var i User
 	err := row.Scan(
 		&i.UserID,
 		&i.Uuid,
 		&i.GithubEmail,
 		&i.CreatedAt,
+		&i.GoogleEmail,
 	)
 	return i, err
 }
 
 const userByGithubEmail = `-- name: UserByGithubEmail :one
-SELECT user_id, uuid, github_email, created_at FROM users WHERE github_email = $1 LIMIT 1
+SELECT user_id, uuid, github_email, created_at, google_email FROM users WHERE github_email = $1 LIMIT 1
 `
 
-func (q *Queries) UserByGithubEmail(ctx context.Context, db DBTX, githubEmail string) (User, error) {
+func (q *Queries) UserByGithubEmail(ctx context.Context, db DBTX, githubEmail nulls.String) (User, error) {
 	row := db.QueryRowContext(ctx, userByGithubEmail, githubEmail)
 	var i User
 	err := row.Scan(
@@ -39,12 +46,30 @@ func (q *Queries) UserByGithubEmail(ctx context.Context, db DBTX, githubEmail st
 		&i.Uuid,
 		&i.GithubEmail,
 		&i.CreatedAt,
+		&i.GoogleEmail,
+	)
+	return i, err
+}
+
+const userByGoogleEmail = `-- name: UserByGoogleEmail :one
+SELECT user_id, uuid, github_email, created_at, google_email FROM users WHERE google_email = $1 LIMIT 1
+`
+
+func (q *Queries) UserByGoogleEmail(ctx context.Context, db DBTX, googleEmail nulls.String) (User, error) {
+	row := db.QueryRowContext(ctx, userByGoogleEmail, googleEmail)
+	var i User
+	err := row.Scan(
+		&i.UserID,
+		&i.Uuid,
+		&i.GithubEmail,
+		&i.CreatedAt,
+		&i.GoogleEmail,
 	)
 	return i, err
 }
 
 const userByUUID = `-- name: UserByUUID :one
-SELECT user_id, uuid, github_email, created_at FROM users WHERE uuid = $1 LIMIT 1
+SELECT user_id, uuid, github_email, created_at, google_email FROM users WHERE uuid = $1 LIMIT 1
 `
 
 func (q *Queries) UserByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID) (User, error) {
@@ -55,6 +80,7 @@ func (q *Queries) UserByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID) (U
 		&i.Uuid,
 		&i.GithubEmail,
 		&i.CreatedAt,
+		&i.GoogleEmail,
 	)
 	return i, err
 }

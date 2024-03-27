@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/awesome-my/backend"
@@ -20,7 +19,6 @@ type Event struct {
 	Uuid        uuid.UUID    `json:"uuid"`
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
-	Tags        []string     `json:"tags"`
 	Website     nulls.String `json:"website"`
 	StartsAt    time.Time    `json:"starts_at"`
 	EndsAt      time.Time    `json:"ends_at"`
@@ -32,7 +30,6 @@ func EventFromDatabase(e database.Event) Event {
 		Uuid:        e.Uuid,
 		Name:        e.Name,
 		Description: e.Description,
-		Tags:        e.Tags,
 		Website:     e.Website,
 		StartsAt:    e.StartsAt,
 		EndsAt:      e.EndsAt,
@@ -43,11 +40,12 @@ func EventFromDatabase(e database.Event) Event {
 func (p *Public) Events(w http.ResponseWriter, r *http.Request) {
 	page, limit, offset := awesomemy.PageLimitOffsetFromRequest(r)
 
-	var tags []string
-	if r.URL.Query().Get("tags") != "" {
-		tags = strings.Split(r.URL.Query().Get("tags"), ",")
-	}
+	//var tags []string
+	//if r.URL.Query().Get("tags") != "" {
+	//	tags = strings.Split(r.URL.Query().Get("tags"), ",")
+	//}
 
+	keyword := r.URL.Query().Get("keyword")
 	orderBy := "desc"
 	if r.URL.Query().Get("orderBy") == "asc" {
 		orderBy = "asc"

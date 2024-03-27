@@ -16,12 +16,17 @@ type Event struct {
 	Uuid        uuid.UUID
 	Name        string
 	Description string
-	Tags        []string
 	StartsAt    time.Time
 	EndsAt      time.Time
 	CreatedAt   time.Time
 	Website     nulls.String
 	UserID      int32
+	Slug        nulls.String
+}
+
+type EventTag struct {
+	EventID int32
+	TagID   int32
 }
 
 type Project struct {
@@ -29,16 +34,29 @@ type Project struct {
 	Uuid        uuid.UUID
 	Name        string
 	Description string
-	Tags        []string
 	UserID      int32
 	CreatedAt   time.Time
 	Repository  nulls.String
 	Website     nulls.String
+	Slug        nulls.String
+}
+
+type ProjectTag struct {
+	ProjectID int32
+	TagID     int32
+}
+
+type Tag struct {
+	TagID int32
+	Uuid  uuid.UUID
+	Name  string
+	Slug  nulls.String
 }
 
 type User struct {
 	UserID      int32
 	Uuid        uuid.UUID
-	GithubEmail string
+	GithubEmail nulls.String
 	CreatedAt   time.Time
+	GoogleEmail nulls.String
 }

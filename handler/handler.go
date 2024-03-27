@@ -1,22 +1,18 @@
 package handler
 
 import (
-	"context"
 	"database/sql"
-	"encoding/json"
+	"github.com/alexedwards/scs/v2"
+	"github.com/go-chi/chi/v5"
 	"log/slog"
 	"net/http"
 	"slices"
 	"time"
 
 	"github.com/alexedwards/scs/redisstore"
-	"github.com/alexedwards/scs/v2"
 	"github.com/awesome-my/backend"
-	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/httprate"
 	"github.com/gomodule/redigo/redis"
-	"github.com/google/go-github/v55/github"
-	"golang.org/x/oauth2"
 )
 
 func New(logger *slog.Logger, cfg awesomemy.Config, db *sql.DB) http.Handler {
@@ -32,7 +28,7 @@ func New(logger *slog.Logger, cfg awesomemy.Config, db *sql.DB) http.Handler {
 	sm.Store = redisstore.NewWithPrefix(&redis.Pool{
 		MaxIdle: 10,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", cfg.Redis.ConnnectionString())
+			return redis.Dial("tcp", cfg.Redis.ConnectionString())
 		},
 	}, cfg.Authentication.Session.Prefix)
 	sm.Lifetime = cfg.Authentication.Session.Lifetime.Duration
@@ -46,18 +42,14 @@ func New(logger *slog.Logger, cfg awesomemy.Config, db *sql.DB) http.Handler {
 
 	r := chi.NewRouter()
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "The resource you are looking for could not be found.",
-		})
+		awesomemy.RenderNotFound(w)
 	})
 	r.Use(
 		httprate.Limit(
 			50,
 			1*time.Minute,
 			httprate.WithLimitHandler(func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusTooManyRequests)
-				json.NewEncoder(w).Encode(map[string]string{
+				awesomemy.Render(w, http.StatusTooManyRequests, map[string]string{
 					"message": "You have hit the rate limit, try again later.",
 				})
 			}),
@@ -92,21 +84,4 @@ func corsMiddleware(cfg awesomemy.Config) func(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-func githubOAuth2Email(ctx context.Context, cfg *oauth2.Config, token *oauth2.Token) (string, error) {
-	githubEmails, _, err := github.NewClient(cfg.Client(ctx, token)).
-		WithAuthToken(token.AccessToken).Users.ListEmails(ctx, &github.ListOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	var primaryEmail string
-	for _, ge := range githubEmails {
-		if ge.GetPrimary() {
-			primaryEmail = ge.GetEmail()
-		}
-	}
-
-	return primaryEmail, nil
 }

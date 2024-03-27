@@ -8,13 +8,13 @@ SELECT * FROM events ORDER BY event_id DESC OFFSET $1 LIMIT $2;
 SELECT count(*) FROM events;
 
 -- name: InsertEvent :one
-INSERT INTO events (name, description, tags, website, starts_at, ends_at, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
+INSERT INTO events (name, description, website, starts_at, ends_at, user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
 
 -- name: EventByUUID :one
 SELECT * FROM events WHERE uuid = $1 LIMIT 1;
 
 -- name: UpdateEvent :one
-UPDATE events SET name = $1, description = $2, tags = $3, website = $4, starts_at = $5, ends_at = $6 WHERE event_id = $7 RETURNING *;
+UPDATE events SET name = $1, description = $2, website = $3, starts_at = $4, ends_at = $5 WHERE event_id = $6 RETURNING *;
 
 -- name: DeleteEvent :exec
 DELETE FROM events WHERE event_id = $1;
@@ -27,12 +27,3 @@ SELECT * FROM events WHERE user_id = $1 ORDER BY event_id DESC OFFSET $2 LIMIT $
 
 -- name: CountUserEvents :one
 SELECT count(*) FROM events WHERE user_id = $1;
-
--- name: EventsByTagsAscOffsetLimit :many
-SELECT * FROM events WHERE tags && $1 ORDER BY event_id ASC OFFSET $2 LIMIT $3;
-
--- name: EventsByTagsDescOffsetLimit :many
-SELECT * FROM events WHERE tags && $1 ORDER BY event_id DESC OFFSET $2 LIMIT $3;
-
--- name: CountEventsByTags :one
-SELECT count(*) FROM events WHERE tags && $1;

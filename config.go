@@ -2,12 +2,13 @@ package awesomemy
 
 import (
 	"fmt"
+	"github.com/goccy/go-yaml"
 	"os"
 	"strconv"
 
-	"github.com/goccy/go-yaml"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
+	googleoauth2 "google.golang.org/api/oauth2/v2"
 )
 
 type Config struct {
@@ -35,7 +36,7 @@ type RedisConfig struct {
 	Port int    `yaml:"port"`
 }
 
-func (rc RedisConfig) ConnnectionString() string {
+func (rc RedisConfig) ConnectionString() string {
 	return rc.Host + ":" + strconv.Itoa(rc.Port)
 }
 
@@ -68,6 +69,11 @@ type AuthenticationOAuth2Config struct {
 		ClientID     string `yaml:"client_id"`
 		ClientSecret string `yaml:"client_secret"`
 	} `yaml:"github"`
+	Google struct {
+		ClientID     string `yaml:"client_id"`
+		ClientSecret string `yaml:"client_secret"`
+		RedirectURL  string `yaml:"redirect_url"`
+	} `yaml:"google"`
 }
 
 func (aac AuthenticationOAuth2Config) OAuth2Config(provider string) *oauth2.Config {
@@ -78,6 +84,14 @@ func (aac AuthenticationOAuth2Config) OAuth2Config(provider string) *oauth2.Conf
 			ClientSecret: aac.GitHub.ClientSecret,
 			Endpoint:     endpoints.GitHub,
 			Scopes:       []string{"read:user", "user:email"},
+		}
+	case "google":
+		return &oauth2.Config{
+			ClientID:     aac.Google.ClientID,
+			ClientSecret: aac.Google.ClientSecret,
+			RedirectURL:  aac.Google.RedirectURL,
+			Endpoint:     endpoints.Google,
+			Scopes:       []string{googleoauth2.UserinfoEmailScope},
 		}
 	}
 

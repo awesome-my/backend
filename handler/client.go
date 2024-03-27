@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -66,8 +65,7 @@ func (c *Client) AuthenticateUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userUuid, err := uuid.FromString(c.sessionManager.GetString(r.Context(), "user:uuid"))
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{
+			awesomemy.Render(w, http.StatusUnauthorized, map[string]string{
 				"message": "You are not authorized to access this resource.",
 			})
 			return
@@ -76,16 +74,14 @@ func (c *Client) AuthenticateUser(next http.Handler) http.Handler {
 		user, err := c.queries.UserByUUID(r.Context(), c.database, userUuid)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(map[string]string{
+				awesomemy.Render(w, http.StatusUnauthorized, map[string]string{
 					"message": "You are not authorized to access this resource.",
 				})
 				return
 			}
 
 			c.logger.Error("could not fetch user by uuid", slog.Any("err", err))
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{
+			awesomemy.Render(w, http.StatusInternalServerError, map[string]string{
 				"message": "Could not fetch user.",
 			})
 			return

@@ -10,8 +10,23 @@ import (
 
 	"github.com/gobuffalo/nulls"
 	"github.com/gofrs/uuid"
-	"github.com/lib/pq"
 )
+
+const countFilteredProjects = `-- name: CountFilteredProjects :one
+SELECT count(*) FROM projects WHERE projects.name ILIKE $1 OR projects.slug ILIKE $2
+`
+
+type CountFilteredProjectsParams struct {
+	Name string
+	Slug nulls.String
+}
+
+func (q *Queries) CountFilteredProjects(ctx context.Context, db DBTX, arg CountFilteredProjectsParams) (int64, error) {
+	row := db.QueryRowContext(ctx, countFilteredProjects, arg.Name, arg.Slug)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
 
 const countProjects = `-- name: CountProjects :one
 SELECT count(*) FROM projects
@@ -19,17 +34,6 @@ SELECT count(*) FROM projects
 
 func (q *Queries) CountProjects(ctx context.Context, db DBTX) (int64, error) {
 	row := db.QueryRowContext(ctx, countProjects)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countProjectsByTags = `-- name: CountProjectsByTags :one
-SELECT count(*) FROM projects WHERE tags && $1
-`
-
-func (q *Queries) CountProjectsByTags(ctx context.Context, db DBTX, tags []string) (int64, error) {
-	row := db.QueryRowContext(ctx, countProjectsByTags, pq.Array(tags))
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -55,14 +59,116 @@ func (q *Queries) DeleteProject(ctx context.Context, db DBTX, projectID int32) e
 	return err
 }
 
+const filteredProjectsByDescOffsetLimit = `-- name: FilteredProjectsByDescOffsetLimit :many
+SELECT project_id, uuid, name, description, user_id, created_at, repository, website, slug FROM projects
+WHERE projects.name ILIKE $1 OR projects.slug ILIKE $2
+ORDER BY project_id DESC
+OFFSET $3 LIMIT $4
+`
+
+type FilteredProjectsByDescOffsetLimitParams struct {
+	Name   string
+	Slug   nulls.String
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) FilteredProjectsByDescOffsetLimit(ctx context.Context, db DBTX, arg FilteredProjectsByDescOffsetLimitParams) ([]Project, error) {
+	rows, err := db.QueryContext(ctx, filteredProjectsByDescOffsetLimit,
+		arg.Name,
+		arg.Slug,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Project
+	for rows.Next() {
+		var i Project
+		if err := rows.Scan(
+			&i.ProjectID,
+			&i.Uuid,
+			&i.Name,
+			&i.Description,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.Repository,
+			&i.Website,
+			&i.Slug,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const filteredProjectsByOffsetLimit = `-- name: FilteredProjectsByOffsetLimit :many
+SELECT project_id, uuid, name, description, user_id, created_at, repository, website, slug FROM projects
+    WHERE projects.name ILIKE $1 OR projects.slug ILIKE $2
+    OFFSET $3 LIMIT $4
+`
+
+type FilteredProjectsByOffsetLimitParams struct {
+	Name   string
+	Slug   nulls.String
+	Offset int32
+	Limit  int32
+}
+
+func (q *Queries) FilteredProjectsByOffsetLimit(ctx context.Context, db DBTX, arg FilteredProjectsByOffsetLimitParams) ([]Project, error) {
+	rows, err := db.QueryContext(ctx, filteredProjectsByOffsetLimit,
+		arg.Name,
+		arg.Slug,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Project
+	for rows.Next() {
+		var i Project
+		if err := rows.Scan(
+			&i.ProjectID,
+			&i.Uuid,
+			&i.Name,
+			&i.Description,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.Repository,
+			&i.Website,
+			&i.Slug,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertProject = `-- name: InsertProject :one
-INSERT INTO projects (name, description, tags, repository, website, user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING project_id, uuid, name, description, tags, user_id, created_at, repository, website
+INSERT INTO projects (name, description, repository, website, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING project_id, uuid, name, description, user_id, created_at, repository, website, slug
 `
 
 type InsertProjectParams struct {
 	Name        string
 	Description string
-	Tags        []string
 	Repository  nulls.String
 	Website     nulls.String
 	UserID      int32
@@ -72,7 +178,6 @@ func (q *Queries) InsertProject(ctx context.Context, db DBTX, arg InsertProjectP
 	row := db.QueryRowContext(ctx, insertProject,
 		arg.Name,
 		arg.Description,
-		pq.Array(arg.Tags),
 		arg.Repository,
 		arg.Website,
 		arg.UserID,
@@ -83,17 +188,17 @@ func (q *Queries) InsertProject(ctx context.Context, db DBTX, arg InsertProjectP
 		&i.Uuid,
 		&i.Name,
 		&i.Description,
-		pq.Array(&i.Tags),
 		&i.UserID,
 		&i.CreatedAt,
 		&i.Repository,
 		&i.Website,
+		&i.Slug,
 	)
 	return i, err
 }
 
 const projectByUUID = `-- name: ProjectByUUID :one
-SELECT project_id, uuid, name, description, tags, user_id, created_at, repository, website FROM projects WHERE uuid = $1 LIMIT 1
+SELECT project_id, uuid, name, description, user_id, created_at, repository, website, slug FROM projects WHERE uuid = $1 LIMIT 1
 `
 
 func (q *Queries) ProjectByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID) (Project, error) {
@@ -104,17 +209,17 @@ func (q *Queries) ProjectByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID)
 		&i.Uuid,
 		&i.Name,
 		&i.Description,
-		pq.Array(&i.Tags),
 		&i.UserID,
 		&i.CreatedAt,
 		&i.Repository,
 		&i.Website,
+		&i.Slug,
 	)
 	return i, err
 }
 
 const projectsByAscOffsetLimit = `-- name: ProjectsByAscOffsetLimit :many
-SELECT project_id, uuid, name, description, tags, user_id, created_at, repository, website FROM projects ORDER BY project_id ASC OFFSET $1 LIMIT $2
+SELECT project_id, uuid, name, description, user_id, created_at, repository, website, slug FROM projects ORDER BY project_id OFFSET $1 LIMIT $2
 `
 
 type ProjectsByAscOffsetLimitParams struct {
@@ -136,11 +241,11 @@ func (q *Queries) ProjectsByAscOffsetLimit(ctx context.Context, db DBTX, arg Pro
 			&i.Uuid,
 			&i.Name,
 			&i.Description,
-			pq.Array(&i.Tags),
 			&i.UserID,
 			&i.CreatedAt,
 			&i.Repository,
 			&i.Website,
+			&i.Slug,
 		); err != nil {
 			return nil, err
 		}
@@ -156,7 +261,7 @@ func (q *Queries) ProjectsByAscOffsetLimit(ctx context.Context, db DBTX, arg Pro
 }
 
 const projectsByDescOffsetLimit = `-- name: ProjectsByDescOffsetLimit :many
-SELECT project_id, uuid, name, description, tags, user_id, created_at, repository, website FROM projects ORDER BY project_id DESC OFFSET $1 LIMIT $2
+SELECT project_id, uuid, name, description, user_id, created_at, repository, website, slug FROM projects ORDER BY project_id DESC OFFSET $1 LIMIT $2
 `
 
 type ProjectsByDescOffsetLimitParams struct {
@@ -178,97 +283,11 @@ func (q *Queries) ProjectsByDescOffsetLimit(ctx context.Context, db DBTX, arg Pr
 			&i.Uuid,
 			&i.Name,
 			&i.Description,
-			pq.Array(&i.Tags),
 			&i.UserID,
 			&i.CreatedAt,
 			&i.Repository,
 			&i.Website,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const projectsByTagsAscOffsetLimit = `-- name: ProjectsByTagsAscOffsetLimit :many
-SELECT project_id, uuid, name, description, tags, user_id, created_at, repository, website FROM projects WHERE tags && $1 ORDER BY project_id ASC OFFSET $2 LIMIT $3
-`
-
-type ProjectsByTagsAscOffsetLimitParams struct {
-	Tags   []string
-	Offset int32
-	Limit  int32
-}
-
-func (q *Queries) ProjectsByTagsAscOffsetLimit(ctx context.Context, db DBTX, arg ProjectsByTagsAscOffsetLimitParams) ([]Project, error) {
-	rows, err := db.QueryContext(ctx, projectsByTagsAscOffsetLimit, pq.Array(arg.Tags), arg.Offset, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Project
-	for rows.Next() {
-		var i Project
-		if err := rows.Scan(
-			&i.ProjectID,
-			&i.Uuid,
-			&i.Name,
-			&i.Description,
-			pq.Array(&i.Tags),
-			&i.UserID,
-			&i.CreatedAt,
-			&i.Repository,
-			&i.Website,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const projectsByTagsDescOffsetLimit = `-- name: ProjectsByTagsDescOffsetLimit :many
-SELECT project_id, uuid, name, description, tags, user_id, created_at, repository, website FROM projects WHERE tags && $1 ORDER BY project_id DESC OFFSET $2 LIMIT $3
-`
-
-type ProjectsByTagsDescOffsetLimitParams struct {
-	Tags   []string
-	Offset int32
-	Limit  int32
-}
-
-func (q *Queries) ProjectsByTagsDescOffsetLimit(ctx context.Context, db DBTX, arg ProjectsByTagsDescOffsetLimitParams) ([]Project, error) {
-	rows, err := db.QueryContext(ctx, projectsByTagsDescOffsetLimit, pq.Array(arg.Tags), arg.Offset, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Project
-	for rows.Next() {
-		var i Project
-		if err := rows.Scan(
-			&i.ProjectID,
-			&i.Uuid,
-			&i.Name,
-			&i.Description,
-			pq.Array(&i.Tags),
-			&i.UserID,
-			&i.CreatedAt,
-			&i.Repository,
-			&i.Website,
+			&i.Slug,
 		); err != nil {
 			return nil, err
 		}
@@ -284,13 +303,12 @@ func (q *Queries) ProjectsByTagsDescOffsetLimit(ctx context.Context, db DBTX, ar
 }
 
 const updateProject = `-- name: UpdateProject :one
-UPDATE projects SET name = $1, description = $2, tags = $3, repository = $4, website = $5 WHERE project_id = $6 RETURNING project_id, uuid, name, description, tags, user_id, created_at, repository, website
+UPDATE projects SET name = $1, description = $2, repository = $3, website = $4 WHERE project_id = $5 RETURNING project_id, uuid, name, description, user_id, created_at, repository, website, slug
 `
 
 type UpdateProjectParams struct {
 	Name        string
 	Description string
-	Tags        []string
 	Repository  nulls.String
 	Website     nulls.String
 	ProjectID   int32
@@ -300,7 +318,6 @@ func (q *Queries) UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectP
 	row := db.QueryRowContext(ctx, updateProject,
 		arg.Name,
 		arg.Description,
-		pq.Array(arg.Tags),
 		arg.Repository,
 		arg.Website,
 		arg.ProjectID,
@@ -311,17 +328,17 @@ func (q *Queries) UpdateProject(ctx context.Context, db DBTX, arg UpdateProjectP
 		&i.Uuid,
 		&i.Name,
 		&i.Description,
-		pq.Array(&i.Tags),
 		&i.UserID,
 		&i.CreatedAt,
 		&i.Repository,
 		&i.Website,
+		&i.Slug,
 	)
 	return i, err
 }
 
 const userProjectsByAscOffsetLimit = `-- name: UserProjectsByAscOffsetLimit :many
-SELECT project_id, uuid, name, description, tags, user_id, created_at, repository, website FROM projects WHERE user_id = $1 ORDER BY project_id ASC OFFSET $2 LIMIT $3
+SELECT project_id, uuid, name, description, user_id, created_at, repository, website, slug FROM projects WHERE user_id = $1 ORDER BY project_id ASC OFFSET $2 LIMIT $3
 `
 
 type UserProjectsByAscOffsetLimitParams struct {
@@ -344,11 +361,11 @@ func (q *Queries) UserProjectsByAscOffsetLimit(ctx context.Context, db DBTX, arg
 			&i.Uuid,
 			&i.Name,
 			&i.Description,
-			pq.Array(&i.Tags),
 			&i.UserID,
 			&i.CreatedAt,
 			&i.Repository,
 			&i.Website,
+			&i.Slug,
 		); err != nil {
 			return nil, err
 		}
@@ -364,7 +381,7 @@ func (q *Queries) UserProjectsByAscOffsetLimit(ctx context.Context, db DBTX, arg
 }
 
 const userProjectsByDescOffsetLimit = `-- name: UserProjectsByDescOffsetLimit :many
-SELECT project_id, uuid, name, description, tags, user_id, created_at, repository, website FROM projects WHERE user_id = $1 ORDER BY project_id DESC OFFSET $2 LIMIT $3
+SELECT project_id, uuid, name, description, user_id, created_at, repository, website, slug FROM projects WHERE user_id = $1 ORDER BY project_id DESC OFFSET $2 LIMIT $3
 `
 
 type UserProjectsByDescOffsetLimitParams struct {
@@ -387,11 +404,11 @@ func (q *Queries) UserProjectsByDescOffsetLimit(ctx context.Context, db DBTX, ar
 			&i.Uuid,
 			&i.Name,
 			&i.Description,
-			pq.Array(&i.Tags),
 			&i.UserID,
 			&i.CreatedAt,
 			&i.Repository,
 			&i.Website,
+			&i.Slug,
 		); err != nil {
 			return nil, err
 		}

@@ -11,7 +11,6 @@ import (
 
 	"github.com/gobuffalo/nulls"
 	"github.com/gofrs/uuid"
-	"github.com/lib/pq"
 )
 
 const countEvents = `-- name: CountEvents :one
@@ -20,17 +19,6 @@ SELECT count(*) FROM events
 
 func (q *Queries) CountEvents(ctx context.Context, db DBTX) (int64, error) {
 	row := db.QueryRowContext(ctx, countEvents)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countEventsByTags = `-- name: CountEventsByTags :one
-SELECT count(*) FROM events WHERE tags && $1
-`
-
-func (q *Queries) CountEventsByTags(ctx context.Context, db DBTX, tags []string) (int64, error) {
-	row := db.QueryRowContext(ctx, countEventsByTags, pq.Array(tags))
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -57,7 +45,7 @@ func (q *Queries) DeleteEvent(ctx context.Context, db DBTX, eventID int32) error
 }
 
 const eventByUUID = `-- name: EventByUUID :one
-SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events WHERE uuid = $1 LIMIT 1
+SELECT event_id, uuid, name, description, starts_at, ends_at, created_at, website, user_id, slug FROM events WHERE uuid = $1 LIMIT 1
 `
 
 func (q *Queries) EventByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID) (Event, error) {
@@ -68,18 +56,18 @@ func (q *Queries) EventByUUID(ctx context.Context, db DBTX, argUuid uuid.UUID) (
 		&i.Uuid,
 		&i.Name,
 		&i.Description,
-		pq.Array(&i.Tags),
 		&i.StartsAt,
 		&i.EndsAt,
 		&i.CreatedAt,
 		&i.Website,
 		&i.UserID,
+		&i.Slug,
 	)
 	return i, err
 }
 
 const eventsByAscOffsetLimit = `-- name: EventsByAscOffsetLimit :many
-SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events ORDER BY event_id ASC OFFSET $1 LIMIT $2
+SELECT event_id, uuid, name, description, starts_at, ends_at, created_at, website, user_id, slug FROM events ORDER BY event_id ASC OFFSET $1 LIMIT $2
 `
 
 type EventsByAscOffsetLimitParams struct {
@@ -101,12 +89,12 @@ func (q *Queries) EventsByAscOffsetLimit(ctx context.Context, db DBTX, arg Event
 			&i.Uuid,
 			&i.Name,
 			&i.Description,
-			pq.Array(&i.Tags),
 			&i.StartsAt,
 			&i.EndsAt,
 			&i.CreatedAt,
 			&i.Website,
 			&i.UserID,
+			&i.Slug,
 		); err != nil {
 			return nil, err
 		}
@@ -122,7 +110,7 @@ func (q *Queries) EventsByAscOffsetLimit(ctx context.Context, db DBTX, arg Event
 }
 
 const eventsByDescOffsetLimit = `-- name: EventsByDescOffsetLimit :many
-SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events ORDER BY event_id DESC OFFSET $1 LIMIT $2
+SELECT event_id, uuid, name, description, starts_at, ends_at, created_at, website, user_id, slug FROM events ORDER BY event_id DESC OFFSET $1 LIMIT $2
 `
 
 type EventsByDescOffsetLimitParams struct {
@@ -144,100 +132,12 @@ func (q *Queries) EventsByDescOffsetLimit(ctx context.Context, db DBTX, arg Even
 			&i.Uuid,
 			&i.Name,
 			&i.Description,
-			pq.Array(&i.Tags),
 			&i.StartsAt,
 			&i.EndsAt,
 			&i.CreatedAt,
 			&i.Website,
 			&i.UserID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const eventsByTagsAscOffsetLimit = `-- name: EventsByTagsAscOffsetLimit :many
-SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events WHERE tags && $1 ORDER BY event_id ASC OFFSET $2 LIMIT $3
-`
-
-type EventsByTagsAscOffsetLimitParams struct {
-	Tags   []string
-	Offset int32
-	Limit  int32
-}
-
-func (q *Queries) EventsByTagsAscOffsetLimit(ctx context.Context, db DBTX, arg EventsByTagsAscOffsetLimitParams) ([]Event, error) {
-	rows, err := db.QueryContext(ctx, eventsByTagsAscOffsetLimit, pq.Array(arg.Tags), arg.Offset, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Event
-	for rows.Next() {
-		var i Event
-		if err := rows.Scan(
-			&i.EventID,
-			&i.Uuid,
-			&i.Name,
-			&i.Description,
-			pq.Array(&i.Tags),
-			&i.StartsAt,
-			&i.EndsAt,
-			&i.CreatedAt,
-			&i.Website,
-			&i.UserID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const eventsByTagsDescOffsetLimit = `-- name: EventsByTagsDescOffsetLimit :many
-SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events WHERE tags && $1 ORDER BY event_id DESC OFFSET $2 LIMIT $3
-`
-
-type EventsByTagsDescOffsetLimitParams struct {
-	Tags   []string
-	Offset int32
-	Limit  int32
-}
-
-func (q *Queries) EventsByTagsDescOffsetLimit(ctx context.Context, db DBTX, arg EventsByTagsDescOffsetLimitParams) ([]Event, error) {
-	rows, err := db.QueryContext(ctx, eventsByTagsDescOffsetLimit, pq.Array(arg.Tags), arg.Offset, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Event
-	for rows.Next() {
-		var i Event
-		if err := rows.Scan(
-			&i.EventID,
-			&i.Uuid,
-			&i.Name,
-			&i.Description,
-			pq.Array(&i.Tags),
-			&i.StartsAt,
-			&i.EndsAt,
-			&i.CreatedAt,
-			&i.Website,
-			&i.UserID,
+			&i.Slug,
 		); err != nil {
 			return nil, err
 		}
@@ -253,13 +153,12 @@ func (q *Queries) EventsByTagsDescOffsetLimit(ctx context.Context, db DBTX, arg 
 }
 
 const insertEvent = `-- name: InsertEvent :one
-INSERT INTO events (name, description, tags, website, starts_at, ends_at, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id
+INSERT INTO events (name, description, website, starts_at, ends_at, user_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING event_id, uuid, name, description, starts_at, ends_at, created_at, website, user_id, slug
 `
 
 type InsertEventParams struct {
 	Name        string
 	Description string
-	Tags        []string
 	Website     nulls.String
 	StartsAt    time.Time
 	EndsAt      time.Time
@@ -270,7 +169,6 @@ func (q *Queries) InsertEvent(ctx context.Context, db DBTX, arg InsertEventParam
 	row := db.QueryRowContext(ctx, insertEvent,
 		arg.Name,
 		arg.Description,
-		pq.Array(arg.Tags),
 		arg.Website,
 		arg.StartsAt,
 		arg.EndsAt,
@@ -282,24 +180,23 @@ func (q *Queries) InsertEvent(ctx context.Context, db DBTX, arg InsertEventParam
 		&i.Uuid,
 		&i.Name,
 		&i.Description,
-		pq.Array(&i.Tags),
 		&i.StartsAt,
 		&i.EndsAt,
 		&i.CreatedAt,
 		&i.Website,
 		&i.UserID,
+		&i.Slug,
 	)
 	return i, err
 }
 
 const updateEvent = `-- name: UpdateEvent :one
-UPDATE events SET name = $1, description = $2, tags = $3, website = $4, starts_at = $5, ends_at = $6 WHERE event_id = $7 RETURNING event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id
+UPDATE events SET name = $1, description = $2, website = $3, starts_at = $4, ends_at = $5 WHERE event_id = $6 RETURNING event_id, uuid, name, description, starts_at, ends_at, created_at, website, user_id, slug
 `
 
 type UpdateEventParams struct {
 	Name        string
 	Description string
-	Tags        []string
 	Website     nulls.String
 	StartsAt    time.Time
 	EndsAt      time.Time
@@ -310,7 +207,6 @@ func (q *Queries) UpdateEvent(ctx context.Context, db DBTX, arg UpdateEventParam
 	row := db.QueryRowContext(ctx, updateEvent,
 		arg.Name,
 		arg.Description,
-		pq.Array(arg.Tags),
 		arg.Website,
 		arg.StartsAt,
 		arg.EndsAt,
@@ -322,18 +218,18 @@ func (q *Queries) UpdateEvent(ctx context.Context, db DBTX, arg UpdateEventParam
 		&i.Uuid,
 		&i.Name,
 		&i.Description,
-		pq.Array(&i.Tags),
 		&i.StartsAt,
 		&i.EndsAt,
 		&i.CreatedAt,
 		&i.Website,
 		&i.UserID,
+		&i.Slug,
 	)
 	return i, err
 }
 
 const userEventsByAscOffsetLimit = `-- name: UserEventsByAscOffsetLimit :many
-SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events WHERE user_id = $1 ORDER BY event_id ASC OFFSET $2 LIMIT $3
+SELECT event_id, uuid, name, description, starts_at, ends_at, created_at, website, user_id, slug FROM events WHERE user_id = $1 ORDER BY event_id ASC OFFSET $2 LIMIT $3
 `
 
 type UserEventsByAscOffsetLimitParams struct {
@@ -356,12 +252,12 @@ func (q *Queries) UserEventsByAscOffsetLimit(ctx context.Context, db DBTX, arg U
 			&i.Uuid,
 			&i.Name,
 			&i.Description,
-			pq.Array(&i.Tags),
 			&i.StartsAt,
 			&i.EndsAt,
 			&i.CreatedAt,
 			&i.Website,
 			&i.UserID,
+			&i.Slug,
 		); err != nil {
 			return nil, err
 		}
@@ -377,7 +273,7 @@ func (q *Queries) UserEventsByAscOffsetLimit(ctx context.Context, db DBTX, arg U
 }
 
 const userEventsByDescOffsetLimit = `-- name: UserEventsByDescOffsetLimit :many
-SELECT event_id, uuid, name, description, tags, starts_at, ends_at, created_at, website, user_id FROM events WHERE user_id = $1 ORDER BY event_id DESC OFFSET $2 LIMIT $3
+SELECT event_id, uuid, name, description, starts_at, ends_at, created_at, website, user_id, slug FROM events WHERE user_id = $1 ORDER BY event_id DESC OFFSET $2 LIMIT $3
 `
 
 type UserEventsByDescOffsetLimitParams struct {
@@ -400,12 +296,12 @@ func (q *Queries) UserEventsByDescOffsetLimit(ctx context.Context, db DBTX, arg 
 			&i.Uuid,
 			&i.Name,
 			&i.Description,
-			pq.Array(&i.Tags),
 			&i.StartsAt,
 			&i.EndsAt,
 			&i.CreatedAt,
 			&i.Website,
 			&i.UserID,
+			&i.Slug,
 		); err != nil {
 			return nil, err
 		}

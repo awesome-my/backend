@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"encoding/json"
+	"github.com/gobuffalo/nulls"
 	"net/http"
 	"time"
 
@@ -11,15 +11,17 @@ import (
 )
 
 type User struct {
-	Uuid        uuid.UUID `json:"uuid"`
-	GitHubEmail string    `json:"github_email"`
-	CreatedAt   time.Time `json:"created_at"`
+	Uuid        uuid.UUID    `json:"uuid"`
+	GitHubEmail nulls.String `json:"github_email"`
+	GoogleEmail nulls.String `json:"google_email"`
+	CreatedAt   time.Time    `json:"created_at"`
 }
 
 func UserFromDatabase(u database.User) User {
 	return User{
 		Uuid:        u.Uuid,
 		GitHubEmail: u.GithubEmail,
+		GoogleEmail: u.GoogleEmail,
 		CreatedAt:   u.CreatedAt,
 	}
 }
@@ -27,7 +29,7 @@ func UserFromDatabase(u database.User) User {
 func (c *Client) Account(w http.ResponseWriter, r *http.Request) {
 	authUser := awesomemy.MustContextValue[database.User](r.Context(), awesomemy.CtxKeyAuthUser)
 
-	json.NewEncoder(w).Encode(map[string]any{
+	awesomemy.Render(w, http.StatusOK, map[string]any{
 		"item": UserFromDatabase(authUser),
 	})
 }
